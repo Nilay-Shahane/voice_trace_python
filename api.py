@@ -52,45 +52,39 @@ async def speech_input(
 
         async def generate_response():
             try:
-                # 1. Yield initial status
                 yield f"data: {json.dumps({'status': 'Analyzing audio...'})}\n\n"
 
-                # 2. Kick off both STT models simultaneously
-                task_base = asyncio.create_task(
-                    asyncio.to_thread(speech_to_text_base, temp_path, lang)
-                )
-                task_turbo = asyncio.create_task(
-                    asyncio.to_thread(speech_to_text_turbo, temp_path, lang)
-                )
-
-                # 3. Yield fast result immediately
+                # 1. Get FAST text to hook user
+                task_base = asyncio.to_thread(speech_to_text_base, temp_path, lang)
                 fast_text = await task_base
                 yield f"data: {json.dumps({'status': 'fast_text', 'text': fast_text})}\n\n"
+                
+                # 2. Update status to keep user hooked
+                yield f"data: {json.dumps({'status': 'Refining text for accuracy...'})}\n\n"
 
-                # 4. Wait for accurate result
+                # 3. Get ACCURATE text
+                task_turbo = asyncio.to_thread(speech_to_text_turbo, temp_path, lang)
                 accurate_text = await task_turbo
                 yield f"data: {json.dumps({'status': 'accurate_text_ready', 'text': accurate_text})}\n\n"
+                
+                # 4. Critical: Ensure accurate_text is a valid string
+                if not accurate_text or len(accurate_text.strip()) == 0:
+                    accurate_text = fast_text # Fallback
 
-                # 5. ✅ async for — because main() is now an async generator
-                async for step_update in main(accurate_text, vendor_id=user_id ,num=-1):
+                yield f"data: {json.dumps({'status': 'AI Agent processing...'})}\n\n"
+
+                # 5. Run the LangGraph agent
+                # Note: 'num' is -1 to trigger a new thread ID in main()
+                async for step_update in main(voice_text=str(accurate_text), vendor_id=user_id, num=-1):
                     yield f"data: {json.dumps(step_update)}\n\n"
 
-                    # Intercept the "complete" stage and save to DB
                     if step_update.get("stage") == "complete":
-                        try:
-                            inserted_id = await save_transaction(
-                                agent_output=step_update,
-                                vendor_id=user_id,
-                                voice_url=None
-                            )
-                            yield f"data: {json.dumps({'stage': 'saved', 'id': inserted_id})}\n\n"
-
-                        except Exception as db_err:
-                            yield f"data: {json.dumps({'stage': 'db_error', 'error': str(db_err)})}\n\n"
+                        inserted_id = await save_transaction(step_update, user_id, None)
+                        yield f"data: {json.dumps({'stage': 'saved', 'id': inserted_id})}\n\n"
 
             except Exception as stream_err:
+                print(f"!!! STREAM ERROR: {stream_err}")
                 yield f"data: {json.dumps({'error': str(stream_err)})}\n\n"
-
             finally:
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
