@@ -1,34 +1,8 @@
-# Virtual Environment
-.venv/
-venv/
-env/
 
-# Environment variables (IMPORTANT - don't push API keys)
+.venv/
+
+
 .env
 
 # Python cache files
 __pycache__/
-*.py[cod]
-*$py.class
-
-# Jupyter Notebook checkpoints
-.ipynb_checkpoints/
-
-# VS Code settings
-.vscode/
-
-# Mac / Windows system files
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-# Build / dist
-build/
-dist/
-*.egg-info/
-
-# Temporary files
-*.tmp
-*.swp

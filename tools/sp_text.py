@@ -54,21 +54,37 @@ whisper.audio.load_audio = load_audio
 # 3️⃣  Load Whisper + Transcribe
 # -------------------------------
 import whisper
-model = whisper.load_model("large-v3-turbo")
+print("Loading Whisper Base model...")
+model_base = whisper.load_model("base")
 
-def speech_to_text(audio_path: str,lang):
+print("Loading Whisper Turbo model...")
+model_turbo = whisper.load_model("large-v3-turbo")
+
+def speech_to_text_base(audio_path: str, lang: str):
     """
-    Converts audio to text using Whisper.
+    Converts audio to text using the fast Base model.
     """
-    result = model.transcribe(
+    result = model_base.transcribe(
         audio_path,
         language=lang,
         task="translate"   # ensures English output always
     )
     
     text = result.get("text", "").strip()
-    print(f"[Whisper Debug] Extracted Text: {text}")
+    print(f"[Whisper Base] Extracted Text: {text}")
+    return text
+
+
+def speech_to_text_turbo(audio_path: str, lang: str):
+    """
+    Converts audio to text using the highly accurate Turbo model.
+    """
+    result = model_turbo.transcribe(
+        audio_path,
+        language=lang,
+        task="translate"   # ensures English output always
+    )
     
-    # WE MUST RETURN THE TEXT TO FASTAPI!
-    # Delete the old lines that called main() and replace them with this:
+    text = result.get("text", "").strip()
+    print(f"[Whisper Turbo] Extracted Text: {text}")
     return text

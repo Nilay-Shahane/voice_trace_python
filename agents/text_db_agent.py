@@ -4,56 +4,39 @@ from typing_extensions import TypedDict
 from pydantic import BaseModel
 from langgraph.graph import StateGraph , START , END
 from langgraph.graph.message import add_messages
+from schemas.transactions import Transaction
+from llm import llm
+from schemas.state import State
+from agents.query_checker import query_checker
+from agents.recommender import recommender
+from agents.query_maker import db_query_maker
+from agents.query_router import route_query      
 
-class Transaction(BaseModel):
-    type: Literal["income", "expense"]
-    amount: float
-    currency: str = "INR"
-    category: str
-    source: Optional[str]
-    raw_text: str
-
-class State(TypedDict):
-    messages:Annotated[list,add_messages]
-
-
-import os
-from dotenv import load_dotenv
-load_dotenv()
-
-from langchain_groq import ChatGroq
-
-from langchain_openai import ChatOpenAI
-
-llm = ChatOpenAI(
-    model="gpt-4o-mini",   # best cheap model
-    temperature=0
-)
 from langchain_core.messages import AIMessage
 
-def db_query_maker(state: State):
-    
-    msg_content = state['messages'][-1].content
-    prompt = f'''Your job is to take the user's message and extract the financial data.
-    Ensure it strictly matches the required schema for a MongoDB insertion query.
-    Extract the type (income/expense), amount, currency, category, and source.
-    '''
-    
-    messages_to_pass = [
-        ("system", prompt),
-        ("human", msg_content)
-    ]
-    
-    db_llm = llm.with_structured_output(Transaction)
-    
-    parsed_transaction = db_llm.invoke(messages_to_pass)
-    
-    return {"messages": [AIMessage(content=parsed_transaction.model_dump_json())]}
-
 graph_builder = StateGraph(State)
-graph_builder.add_node('db_query',db_query_maker)
-graph_builder.add_edge(START , 'db_query')
-graph_builder.add_edge('db_query' , END)
+
+# Add Nodes
+graph_builder.add_node('checker', query_checker)
+graph_builder.add_node('db_query', db_query_maker)
+graph_builder.add_node('recommender', recommender)
+
+# Add Edges
+graph_builder.add_edge(START, 'checker')
+
+# Conditional Routing
+graph_builder.add_conditional_edges(
+    'checker', 
+    route_query, 
+    {
+        'valid': 'db_query',
+        'invalid': 'recommender'
+    }
+)
+
+# End Edges
+graph_builder.add_edge('db_query', END)
+graph_builder.add_edge('recommender', END)
 
 graph = graph_builder.compile()
 def main(voice_text : str):
@@ -67,6 +50,7 @@ def main(voice_text : str):
             # 3. If it's the final node, extract and yield the JSON data
             if node_name == 'db_query':
                 final_json = json.loads(node_state['messages'][-1].content)
+                print(final_json)
                 yield {"status": "Complete", "data": final_json}
 
 if __name__ == "__main__":
