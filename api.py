@@ -6,6 +6,7 @@ from fastapi import FastAPI, Form, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from tools.save_transaction import save_transaction
 
 # 1️⃣ Import the two new separated functions
 from tools.sp_text import speech_to_text_base, speech_to_text_turbo
@@ -77,6 +78,19 @@ async def speech_input(
                 # Pass the highly accurate text into your main agent
                 for step_update in main(accurate_text):
                     yield f"data: {json.dumps(step_update)}\n\n"
+
+                    # ✅ Intercept the "complete" stage and save to DB
+                    if step_update.get("stage") == "complete":
+                        try:
+                            inserted_id = await save_transaction(
+                                agent_output=step_update,
+                                vendor_id=user_id,
+                                voice_url=None   # pass a real URL if you upload audio to S3/GCS
+                            )
+                            yield f"data: {json.dumps({'stage': 'saved', 'id': inserted_id})}\n\n"
+                        
+                        except Exception as db_err:
+                            yield f"data: {json.dumps({'stage': 'db_error', 'error': str(db_err)})}\n\n"
                     
             except Exception as stream_err:
                 yield f"data: {json.dumps({'error': str(stream_err)})}\n\n"
@@ -93,3 +107,4 @@ async def speech_input(
             status_code=500,
             detail=f"Error processing speech input: {str(e)}"
         )
+    
