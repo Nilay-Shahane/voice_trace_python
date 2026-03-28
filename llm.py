@@ -13,7 +13,7 @@ load_dotenv()
 from langchain_openai import ChatOpenAI
 
 llm = ChatOpenAI(
-    model="gpt-4o-mini",   # BEST choice for your use case
+    model="gpt-4.1-mini",   # BEST choice for your use case
     temperature=0
 )
 

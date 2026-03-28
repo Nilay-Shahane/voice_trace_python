@@ -11,7 +11,7 @@ from langchain_core.messages import AIMessage
 from schemas.transactions import SaleTransaction,ExpenseTransaction, UdharTransaction
 
 def db_query_maker_sale(state: State):
-    msg_content = state['messages'][0].content 
+    msg_content = state['recent_msg']
     
     prompt = f'''Your job is to act as a financial data extraction engine.
     Take the user's voice transcript and extract the data to strictly match the provided schema for a MongoDB insertion.
