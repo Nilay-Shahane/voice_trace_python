@@ -14,7 +14,7 @@ from agents.text_db_agent import main
 
 app = FastAPI(title="FinWell Agent API", version="1.0.0")
 
-origins = ["http://localhost:3000"]
+origins = ["http://localhost:3000","http://localhost:5173", "http://127.0.0.1:5173"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -26,7 +26,7 @@ app.add_middleware(
 class AgentQuery(BaseModel):
     userId: str
     query: str
-    lang: str = "english"
+    lang: str = "hi"
 
 @app.post("/api/speech_msg")
 async def speech_input(
@@ -47,6 +47,8 @@ async def speech_input(
         
         with open(temp_path, "wb") as f:
             f.write(audio_bytes)
+
+        model_lang = "hi" if lang.lower() == "hindi" else "en"
             
         async def generate_response():
             try:
@@ -66,6 +68,8 @@ async def speech_input(
                 fast_text = await task_base
                 # We tag this as "fast_text" so the frontend knows it's the preliminary result
                 yield f"data: {json.dumps({'status': 'fast_text', 'text': fast_text})}\n\n"
+
+                yield f"data: {json.dumps({'status': 'Refining text for accuracy...'})}\n\n"
                 
                 # 4️⃣ WAIT FOR THE HEAVY MODEL
                 # (Since we used create_task earlier, it has already been running this whole time)
