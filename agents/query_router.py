@@ -17,8 +17,8 @@ def route_query(state: State) -> str:
         # Assuming your Check schema has a boolean 'flag' attribute
         print(check_data.get('missing'))
         if check_data.get('flag') == True:
-            return 'valid'
+            return 'correct'
         else:
-            return 'invalid'
+            return 'incorrect'
     except json.JSONDecodeError:
         return 'invalid'

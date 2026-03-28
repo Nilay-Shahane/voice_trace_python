@@ -12,7 +12,7 @@ from langchain_core.messages import AIMessage
 # Inside query_checker.py
 
 def query_checker_sale(state: State):
-    msg_content = state['messages'][-1].content
+    msg_content = state['messages'][0].content
     
     prompt = f'''You are a validation agent. Your ONLY job is to verify if the user's message contains enough information to log a transaction.
     Do NOT extract the actual values into the schema. Only evaluate completeness.
@@ -48,7 +48,7 @@ def query_checker_sale(state: State):
     return {"messages": [AIMessage(content=parsed_check.model_dump_json())]}
 
 def query_checker_expense(state: State):
-    msg_content = state['messages'][-1].content
+    msg_content = state['messages'][0].content
     
     prompt = f'''You are a validation agent specialized in EXPENSES. Your ONLY job is to verify if the user's message contains enough information to log an expense transaction.
     Do NOT extract the actual values into the schema. Only evaluate completeness.
@@ -81,7 +81,7 @@ def query_checker_expense(state: State):
     return {"messages": [AIMessage(content=parsed_check.model_dump_json())]}
 
 def query_checker_udhar(state: State):
-    msg_content = state['messages'][-1].content
+    msg_content = state['messages'][0].content
     
     prompt = f'''You are a validation agent specialized in UDHAR (Credit/Debt). Your ONLY job is to verify if the user's message contains enough information to log an udhar transaction.
     Do NOT extract the actual values into the schema. Only evaluate completeness.
