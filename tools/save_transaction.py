@@ -7,7 +7,7 @@ async def save_sale_event(data: dict, vendor_id: str, voice_url: str = None):
     now = datetime.utcnow()
 
     document = {
-        "vendorId":     ObjectId(vendor_id),
+        "vendorId":     vendor_id,
         "timestamp":    now,
         "date":         now,
         "voiceUrl":     voice_url,
