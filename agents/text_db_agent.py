@@ -122,7 +122,7 @@ def main(voice_text: str):
         for node_name, node_state in event.items():
 
             # 1. Yield a human-readable status for each node as it completes
-            description = NODE_DESCRIPTIONS.get(node_name, f'⚙️  Processing node: {node_name}...')
+            description = NODE_DESCRIPTIONS.get(node_name, f'  Processing node: {node_name}...')
             yield {"status": description}
 
             # 2. Successfully built a DB-ready transaction record
