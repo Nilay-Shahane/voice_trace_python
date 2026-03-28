@@ -154,3 +154,37 @@ async def speech_input(
             status_code=500,
             detail=f"Error processing message: {str(e)}"
         )
+    
+@app.post("/api/next_day_suggestions")
+async def next_day_suggestions(
+    meta: str = Form(...)
+):
+    try:
+        parsed = json.loads(meta)
+        vendor_id = parsed.get("userId")
+
+        if not vendor_id:
+            raise HTTPException(status_code=400, detail="Missing userId")
+
+        print(f"📦 Generating next-day suggestions for vendor: {vendor_id}")
+
+        from agents.next_day_agent import build_graph
+
+        app_graph = build_graph()
+
+        initial_state = {
+            "vendor_id":   vendor_id,
+            "raw_data":    [],
+            "analysis":    "",
+            "suggestions": [],
+        }
+
+        final_state = await asyncio.to_thread(app_graph.invoke, initial_state)
+
+        return {"suggestions": final_state["suggestions"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating suggestions: {str(e)}"
+        )
