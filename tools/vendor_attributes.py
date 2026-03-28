@@ -1,8 +1,10 @@
+# tools/get_vendor_attributes.py
+
 from db import db
 from bson import ObjectId
 
 
-async def get_vendor_attributes(vendor_id: str) -> dict:
+async def get_vendor_attributes(vendor_id: str) -> dict:  # ← just a string, no State
     vendor = await db.vendors.find_one(
         {"_id": ObjectId(vendor_id)},
         {"_id": 0, "name": 1, "language": 1, "items": 1}
