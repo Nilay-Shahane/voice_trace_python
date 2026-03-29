@@ -41,9 +41,10 @@ async def fetch_vendor_daily_records(vendor_id: str, days: int = 7) -> list:
 # NODES
 # ─────────────────────────────────────────
 
-def fetch_data_node(state: VendorState) -> VendorState:
+async def fetch_data_node(state: VendorState) -> VendorState:
     print(f"[fetch_data] Loading data for vendor {state['vendor_id']} ...")
-    raw = asyncio.run(fetch_vendor_daily_records(state["vendor_id"], days=7))
+    # Native await! No more asyncio.run()
+    raw = await fetch_vendor_daily_records(state["vendor_id"], days=7) 
     return {**state, "raw_data": raw}
 
 

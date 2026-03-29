@@ -10,6 +10,7 @@ from tools.save_transaction import save_transaction
 from tools.sp_text import speech_to_text_base, speech_to_text_turbo
 from tools.delete_recommendation import delete_recommendation
 from agents.text_db_agent import main
+from agents.waste_agent import build_graph as build_waste_graph
 import random
 
 
@@ -173,7 +174,7 @@ async def next_day_suggestions(
             "suggestions": [],
         }
 
-        final_state = await asyncio.to_thread(app_graph.invoke, initial_state)
+        final_state = await app_graph.ainvoke(initial_state)
 
         return {"suggestions": final_state["suggestions"]}
 
@@ -181,4 +182,64 @@ async def next_day_suggestions(
         raise HTTPException(
             status_code=500,
             detail=f"Error generating suggestions: {str(e)}"
+        )
+    
+@app.post("/api/waste_insights")
+async def waste_insights(meta: str = Form(...)):
+    try:
+        parsed = json.loads(meta)
+        vendor_id = parsed.get("userId")
+
+        # FIX: Ensure it does not attempt to lookup "undefined" in the DB
+        if not vendor_id or vendor_id in ["undefined", "null"]:
+            raise HTTPException(status_code=400, detail="Missing or invalid userId")
+
+        print(f"🗑️ Generating waste insights for vendor: {vendor_id}")
+
+        waste_graph = build_waste_graph()
+
+        initial_state = {
+            "vendor_id": vendor_id,
+            "raw_data": [],
+            "analysis": "",
+            "waste_insights": [],
+        }
+
+        # Run the graph asynchronously within FastAPI's event loop
+        final_state = await waste_graph.ainvoke(initial_state)
+
+        return {"insights": final_state["waste_insights"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating waste insights: {str(e)}"
+        )
+    try:
+        parsed = json.loads(meta)
+        vendor_id = parsed.get("userId")
+
+        if not vendor_id:
+            raise HTTPException(status_code=400, detail="Missing userId")
+
+        print(f"🗑️ Generating waste insights for vendor: {vendor_id}")
+
+        waste_graph = build_waste_graph()
+
+        initial_state = {
+            "vendor_id": vendor_id,
+            "raw_data": [],
+            "analysis": "",
+            "waste_insights": [],
+        }
+
+        # Run the graph asynchronously within FastAPI's event loop
+        final_state = await waste_graph.ainvoke(initial_state)
+
+        return {"insights": final_state["waste_insights"]}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating waste insights: {str(e)}"
         )
