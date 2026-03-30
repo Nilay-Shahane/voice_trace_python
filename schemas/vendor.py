@@ -1,7 +1,8 @@
-from typing import TypedDict, List, Dict, Any
-from langgraph.graph import StateGraph, END
+from typing import TypedDict, List
+
 class VendorState(TypedDict):
-    vendor_id: str
-    raw_data: List[Dict[str, Any]]   # last N days of daily-summary docs
-    analysis: str                    # intermediate analysis text
+    vendor_id:   str
+    raw_data:    list
+    analysis:    str
     suggestions: List[str]
+    lang:        str        # ← add this

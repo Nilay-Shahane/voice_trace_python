@@ -11,12 +11,12 @@ from llm import llm
 from datetime import datetime, timedelta
 from bson import ObjectId
 from db import get_db
+from tools.lang import get_vendor_language
 
 
 # ─────────────────────────────────────────
 # DB FETCH
 # ─────────────────────────────────────────
-
 async def fetch_vendor_daily_records(vendor_id: str, days: int = 7) -> list:
     db = get_db()
 
@@ -38,18 +38,34 @@ async def fetch_vendor_daily_records(vendor_id: str, days: int = 7) -> list:
 
 
 # ─────────────────────────────────────────
+# SERIALIZER
+# ─────────────────────────────────────────
+def serialize_records(records: list) -> list:
+    clean = []
+    for doc in records:
+        clean.append({
+            k: (str(v) if isinstance(v, ObjectId) else
+                v.isoformat() if isinstance(v, datetime) else v)
+            for k, v in doc.items()
+        })
+    return clean
+
+
+# ─────────────────────────────────────────
 # NODES
 # ─────────────────────────────────────────
 
 async def fetch_data_node(state: VendorState) -> VendorState:
     print(f"[fetch_data] Loading data for vendor {state['vendor_id']} ...")
-    # Native await! No more asyncio.run()
-    raw = await fetch_vendor_daily_records(state["vendor_id"], days=7) 
-    return {**state, "raw_data": raw}
+    raw = await fetch_vendor_daily_records(state["vendor_id"], days=7)
+    lang = await get_vendor_language(state["vendor_id"])
+    return {**state, "raw_data": serialize_records(raw), "lang": lang}
 
 
 def agent_node(state: VendorState) -> VendorState:
     print("[agent] Analysing data and generating suggestions ...")
+
+    lang = state["lang"]
 
     day_summaries = []
     for day in state["raw_data"]:
@@ -79,6 +95,7 @@ Task:
    - Increase quantity for fast-selling items.
    - Decrease or skip items that are repeatedly unsold or wasted.
    - Keep language simple so a street-vendor can understand.
+   - Generate all suggestions in the following language: {lang}
 
 Return ONLY the suggestion lines, nothing else.
 """.strip()
@@ -131,6 +148,7 @@ if __name__ == "__main__":
         "raw_data":    [],
         "analysis":    "",
         "suggestions": [],
+        "lang":        "",
     }
 
-    final_state = app.invoke(initial_state)
+    final_state = asyncio.run(app.ainvoke(initial_state))

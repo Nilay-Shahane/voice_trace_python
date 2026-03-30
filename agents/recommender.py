@@ -2,9 +2,9 @@ import json
 from schemas.state import State
 from llm import llm
 from langchain_core.messages import AIMessage
+from tools.lang import get_vendor_language
 
-
-def recommender(state: State):
+async def recommender(state: State):
     print("--- EXECUTING RECOMMENDER NODE ---")
 
     # 1. Get the original user message
@@ -28,7 +28,8 @@ def recommender(state: State):
     # 4. Serialize catalog and missing fields for injection into prompt
     item_catalog_str = json.dumps(item_catalog, indent=2) if item_catalog else "No catalog available."
     missing_fields_str = ", ".join(missing_fields)
-
+    lang = await get_vendor_language(state["vendor_id"])
+    print(lang)
     # 5. System prompt with all variables properly injected
     system_prompt = f"""You are a retail transaction assistant embedded in a POS system.
 Your job is to intelligently infer missing transaction details using structured catalog data.
@@ -58,7 +59,7 @@ Output Format:
 - Use "rs" for currency, keep it short and informal
 - No explanations, no markdown, no extra formatting
 - Example: ["did you mean you sold milk 2 quantities for 45 rs?", "did you mean you sold 1 pack of bread for 30 rs?"]
-
+give ans in whatever lang user wants i.e{lang}
 Focus on accuracy, realism, and contextual relevance."""
 
     # 6. Construct message payload — system + human turn

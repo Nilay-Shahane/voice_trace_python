@@ -11,12 +11,11 @@ from tools.sp_text import speech_to_text_base, speech_to_text_turbo
 from tools.delete_recommendation import delete_recommendation
 from agents.text_db_agent import main
 from agents.waste_agent import build_graph as build_waste_graph
-import random
 
 
 app = FastAPI(title="FinWell Agent API", version="1.0.0")
 
-origins = ["http://localhost:3000","http://localhost:5173", "http://127.0.0.1:5173"]
+origins = ["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:5173"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -55,27 +54,21 @@ async def speech_input(
             try:
                 yield f"data: {json.dumps({'status': 'Analyzing audio...'})}\n\n"
 
-                # 1. Get FAST text to hook user
                 task_base = asyncio.to_thread(speech_to_text_base, temp_path, lang)
                 fast_text = await task_base
                 yield f"data: {json.dumps({'status': 'fast_text', 'text': fast_text})}\n\n"
-                
-                # 2. Update status to keep user hooked
+
                 yield f"data: {json.dumps({'status': 'Refining text for accuracy...'})}\n\n"
 
-                # 3. Get ACCURATE text
                 task_turbo = asyncio.to_thread(speech_to_text_turbo, temp_path, lang)
                 accurate_text = await task_turbo
                 yield f"data: {json.dumps({'status': 'accurate_text_ready', 'text': accurate_text})}\n\n"
-                
-                # 4. Critical: Ensure accurate_text is a valid string
+
                 if not accurate_text or len(accurate_text.strip()) == 0:
-                    accurate_text = fast_text # Fallback
+                    accurate_text = fast_text
 
                 yield f"data: {json.dumps({'status': 'AI Agent processing...'})}\n\n"
 
-                # 5. Run the LangGraph agent
-                # Note: 'num' is -1 to trigger a new thread ID in main()
                 async for step_update in main(voice_text=str(accurate_text), vendor_id=user_id, num=-1):
                     yield f"data: {json.dumps(step_update)}\n\n"
 
@@ -93,13 +86,11 @@ async def speech_input(
         return StreamingResponse(generate_response(), media_type="text/event-stream")
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error processing speech input: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error processing speech input: {str(e)}")
+
 
 @app.post("/api/recommend_msg")
-async def speech_input(
+async def recommend_msg(
     meta: str = Form(...),
     lang: str = Form(...)
 ):
@@ -124,7 +115,7 @@ async def speech_input(
                 except Exception as del_err:
                     yield f"data: {json.dumps({'stage': 'cleanup_error', 'error': str(del_err)})}\n\n"
 
-                async for step_update in main(voice_text=msg, vendor_id=vendor_id,num=num):
+                async for step_update in main(voice_text=msg, vendor_id=vendor_id, num=num):
                     yield f"data: {json.dumps(step_update)}\n\n"
 
                     if step_update.get("stage") == "complete":
@@ -135,7 +126,6 @@ async def speech_input(
                                 voice_url=None
                             )
                             yield f"data: {json.dumps({'stage': 'saved', 'id': inserted_id})}\n\n"
-
                         except Exception as db_err:
                             yield f"data: {json.dumps({'stage': 'db_error', 'error': str(db_err)})}\n\n"
 
@@ -145,11 +135,9 @@ async def speech_input(
         return StreamingResponse(generate_response(), media_type="text/event-stream")
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error processing message: {str(e)}"
-        )
-    
+        raise HTTPException(status_code=500, detail=f"Error processing message: {str(e)}")
+
+
 @app.post("/api/next_day_suggestions")
 async def next_day_suggestions(
     meta: str = Form(...)
@@ -172,6 +160,7 @@ async def next_day_suggestions(
             "raw_data":    [],
             "analysis":    "",
             "suggestions": [],
+            "lang":        "",   # ← fix: was missing
         }
 
         final_state = await app_graph.ainvoke(initial_state)
@@ -179,18 +168,15 @@ async def next_day_suggestions(
         return {"suggestions": final_state["suggestions"]}
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error generating suggestions: {str(e)}"
-        )
-    
+        raise HTTPException(status_code=500, detail=f"Error generating suggestions: {str(e)}")
+
+
 @app.post("/api/waste_insights")
 async def waste_insights(meta: str = Form(...)):
     try:
         parsed = json.loads(meta)
         vendor_id = parsed.get("userId")
 
-        # FIX: Ensure it does not attempt to lookup "undefined" in the DB
         if not vendor_id or vendor_id in ["undefined", "null"]:
             raise HTTPException(status_code=400, detail="Missing or invalid userId")
 
@@ -199,47 +185,15 @@ async def waste_insights(meta: str = Form(...)):
         waste_graph = build_waste_graph()
 
         initial_state = {
-            "vendor_id": vendor_id,
-            "raw_data": [],
-            "analysis": "",
+            "vendor_id":     vendor_id,
+            "raw_data":      [],
+            "analysis":      "",
             "waste_insights": [],
         }
 
-        # Run the graph asynchronously within FastAPI's event loop
         final_state = await waste_graph.ainvoke(initial_state)
 
         return {"insights": final_state["waste_insights"]}
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error generating waste insights: {str(e)}"
-        )
-    try:
-        parsed = json.loads(meta)
-        vendor_id = parsed.get("userId")
-
-        if not vendor_id:
-            raise HTTPException(status_code=400, detail="Missing userId")
-
-        print(f"🗑️ Generating waste insights for vendor: {vendor_id}")
-
-        waste_graph = build_waste_graph()
-
-        initial_state = {
-            "vendor_id": vendor_id,
-            "raw_data": [],
-            "analysis": "",
-            "waste_insights": [],
-        }
-
-        # Run the graph asynchronously within FastAPI's event loop
-        final_state = await waste_graph.ainvoke(initial_state)
-
-        return {"insights": final_state["waste_insights"]}
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error generating waste insights: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error generating waste insights: {str(e)}")
