@@ -703,7 +703,20 @@ async def main(voice_text: str, vendor_id: str,num):
         num = random.randint(1000, 9999)
         print(num)
     # Use vendor_id as thread_id so each user has isolated memory
-    config = {'configurable': {'thread_id': num}}
+        config = {
+        "configurable": {
+            "thread_id": str(num)
+        },
+        "metadata": {
+            "vendor_id": vendor_id,
+            "conversation_id": num,
+            "application": "transaction-agent"
+        },
+        "tags": [
+            "production",
+            "transaction-classifier"
+        ]
+    }
     print(voice_text)
     async for event in graph.astream({
         'messages': voice_text,

@@ -8,29 +8,43 @@ from langchain_core.messages import AIMessage
 def query_type_checker(state: State):
     msg_content = state['messages'][0].content
 
-    prompt = f'''You are a transaction classification agent for a small business POS system.
-Your ONLY job is to classify the user's message into exactly one of three transaction types.
+    prompt = f'''Task
 
-Transaction Types:
-- sale     → The vendor SOLD something to a customer (keywords: sold, selling, sale, becha, diya)
-- expense  → The vendor SPENT money on something (keywords: spent, paid, bought, kharcha, expense)
-- udhar    → A credit/debt transaction, either given or received (keywords: udhar, credit, borrowed, lent, udhaar)
+                    Classify the user's business transaction into exactly one label.
 
-Rules:
-- Classify based on intent, not just keywords
-- If ambiguous, pick the closest match
-- Never return anything other than: sale, expense, or udhar
+                    Labels
 
-Examples:
-- "I sold 2 pizzas for 80 rs"           → sale
-- "I spent 150 on an auto"              → expense
-- "Paid shop rent 5000"                 → expense
-- "Rahul took 500 on udhar"             → udhar
-- "I gave 200 to Suresh on credit"      → udhar
-- "Becha 3 samose 30 mein"              → sale
+                    sale
+                    The business receives money by providing goods or services.
 
-User Message: "{msg_content}"
-'''
+                    expense
+                    The business spends money to acquire goods, services, inventory, or operating costs.
+
+                    udhar
+                    The transaction creates, updates, settles, or refers to a credit/debt relationship where payment is deferred.
+
+                    Rules
+
+                    - Interpret every message from the business owner's perspective.
+                    - Focus on transaction intent, not keywords.
+                    - Messages may be in English, Hindi, Marathi, or mixed languages.
+                    - Ignore spelling mistakes and informal wording.
+                    - If a sale is made on credit, classify as "udhar".
+                    - Return exactly one lowercase label:
+                    sale
+                    expense
+                    udhar
+
+                    Examples:
+                    - "I sold 2 pizzas for 80 rs"           → sale
+                    - "I spent 150 on an auto"              → expense
+                    - "Paid shop rent 5000"                 → expense
+                    - "Rahul took 500 on udhar"             → udhar
+                    - "I gave 200 to Suresh on credit"      → udhar
+                    - "Becha 3 samose 30 mein"              → sale
+
+                    User Message: "{msg_content}"
+                    '''
 
     messages_to_pass = [
         ("system", prompt),

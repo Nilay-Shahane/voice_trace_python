@@ -13,9 +13,9 @@ sys.stdout.reconfigure(encoding="utf-8")
 warnings.filterwarnings("ignore", message="FP16 is not supported on CPU")
 
 
-# -------------------------------
-# 1️⃣  Setup FFmpeg from imageio
-# -------------------------------
+
+#Setup FFmpeg from imageio
+
 ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
 
 # Force Whisper model downloads to D:
@@ -23,9 +23,9 @@ os.environ["WHISPER_CACHE_DIR"] = "D:/WhisperCache"
 os.makedirs(os.environ["WHISPER_CACHE_DIR"], exist_ok=True)
 
 
-# -------------------------------
-# 2️⃣  Patch Whisper audio loader
-# -------------------------------
+
+#  Patch Whisper audio loader
+
 def load_audio(file: str, sr: int = 16000):
     """
     Load audio using FFmpeg from imageio_ffmpeg
@@ -50,9 +50,9 @@ import whisper.audio
 whisper.audio.load_audio = load_audio
 
 
-# -------------------------------
-# 3️⃣  Load Whisper + Transcribe
-# -------------------------------
+
+#Load Whisper + Transcribe
+
 import whisper
 print("Loading Whisper Base model...")
 model_base = whisper.load_model("base")

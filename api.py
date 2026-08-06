@@ -13,7 +13,7 @@ from agents.text_db_agent import main
 from agents.waste_agent import build_graph as build_waste_graph
 
 
-app = FastAPI(title="FinWell Agent API", version="1.0.0")
+app = FastAPI(title="VoiceTrace  Agent API", version="1.0.0")
 
 origins = ["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:5173"]
 app.add_middleware(
@@ -43,24 +43,31 @@ async def speech_input(
         timestamp = str(parsed["timestamp"])
         print(f"Processing audio for User: {user_id}")
 
-        audio_bytes = await audio.read()
+        
         unique_file_id = str(uuid.uuid4())
         temp_path = f"temp_input_audio_{unique_file_id}.m4a"
 
         with open(temp_path, "wb") as f:
-            f.write(audio_bytes)
+            while chunk := await audio.read(1024 * 1024):  # 1MB chunks
+                f.write(chunk)
 
         async def generate_response():
             try:
                 yield f"data: {json.dumps({'status': 'Analyzing audio...'})}\n\n"
 
-                task_base = asyncio.to_thread(speech_to_text_base, temp_path, lang)
+                # 1. Fire BOTH threads immediately. They are now both running concurrently.
+                task_base = asyncio.create_task(asyncio.to_thread(speech_to_text_base, temp_path, lang))
+                task_turbo = asyncio.create_task(asyncio.to_thread(speech_to_text_turbo, temp_path, lang))
+
+                # 2. Wait for the Base model to finish first
                 fast_text = await task_base
                 yield f"data: {json.dumps({'status': 'fast_text', 'text': fast_text})}\n\n"
-
                 yield f"data: {json.dumps({'status': 'Refining text for accuracy...'})}\n\n"
 
-                task_turbo = asyncio.to_thread(speech_to_text_turbo, temp_path, lang)
+                # 3. Now wait for Turbo. 
+                # Because we started it at the exact same time as Base, it has ALREADY 
+                # been running this whole time. If Base took 2s and Turbo takes 5s, 
+                # this await will only pause for the remaining 3s!
                 accurate_text = await task_turbo
                 yield f"data: {json.dumps({'status': 'accurate_text_ready', 'text': accurate_text})}\n\n"
 

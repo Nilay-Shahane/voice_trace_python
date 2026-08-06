@@ -14,8 +14,7 @@ from langchain_openai import ChatOpenAI
 
 llm = ChatOpenAI(
     model="gpt-4.1-mini",   # BEST choice for your use case
-    temperature=0
+    temperature=1
 )
 
 print("LLM INITIALIZATION")
-print('LLM INITIALIZATION')

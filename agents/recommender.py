@@ -32,35 +32,35 @@ async def recommender(state: State):
     print(lang)
     # 5. System prompt with all variables properly injected
     system_prompt = f"""You are a retail transaction assistant embedded in a POS system.
-Your job is to intelligently infer missing transaction details using structured catalog data.
+            Your job is to intelligently infer missing transaction details using structured catalog data.
 
-Vendor: {vendor_name}
+            Vendor: {vendor_name}
 
-Missing Fields: {missing_fields_str}
+            Missing Fields: {missing_fields_str}
 
-Item Catalog:
-{item_catalog_str}
+            Item Catalog:
+            {item_catalog_str}
 
-Partial Transaction Context: '{msg_content}'
+            Partial Transaction Context: '{msg_content}'
 
-Your task:
-- Analyze the catalog and context above
-- Suggest 1–3 highly relevant completions ONLY for the missing fields listed
-- Rules:
-  • Only use items from the catalog above
-  • Infer price from sellingPrice if the amount field is missing
-  • Suggest practical quantities (1, 2, 3, 5, etc.) if quantity is missing
-  • Do not invent items not present in the catalog
+            Your task:
+            - Analyze the catalog and context above
+            - Suggest 1–3 highly relevant completions ONLY for the missing fields listed
+            - Rules:
+            • Only use items from the catalog above
+            • Infer price from sellingPrice if the amount field is missing
+            • Suggest practical quantities (1, 2, 3, 5, etc.) if quantity is missing
+            • Do not invent items not present in the catalog
 
-Output Format:
-- A JSON list of casual, conversational confirmation strings
-- Each string should sound like a friendly cashier asking "did you mean...?"
-- Fill in ALL missing fields naturally within the sentence
-- Use "rs" for currency, keep it short and informal
-- No explanations, no markdown, no extra formatting
-- Example: ["did you mean you sold milk 2 quantities for 45 rs?", "did you mean you sold 1 pack of bread for 30 rs?"]
-give ans in whatever lang user wants i.e{lang}
-Focus on accuracy, realism, and contextual relevance."""
+            Output Format:
+            - A JSON list of casual, conversational confirmation strings
+            - Each string should sound like a friendly cashier asking "did you mean...?"
+            - Fill in ALL missing fields naturally within the sentence
+            - Use "rs" for currency, keep it short and informal
+            - No explanations, no markdown, no extra formatting
+            - Example: ["did you mean you sold milk 2 quantities for 45 rs?", "did you mean you sold 1 pack of bread for 30 rs?"]
+            give ans in whatever lang user wants i.e{lang}
+            Focus on accuracy, realism, and contextual relevance."""
 
     # 6. Construct message payload — system + human turn
     messages_to_pass = [
