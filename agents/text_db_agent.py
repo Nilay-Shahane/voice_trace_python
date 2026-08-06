@@ -22,60 +22,109 @@ memory = MemorySaver()
 graph_builder = StateGraph(State)
 
 # --- 1. Add All Nodes ---
-graph_builder.add_node('query_type_checker', query_type_checker)
-graph_builder.add_node('sale_check', query_checker_sale)
-graph_builder.add_node('expense_check', query_checker_expense)
-graph_builder.add_node('udhar_check', query_checker_udhar)
-graph_builder.add_node('sale_query', db_query_maker_sale)
-graph_builder.add_node('expense_query', expense_query_maker)
-graph_builder.add_node('udhar_query', udhar_query_maker)
-graph_builder.add_node('rec', recommender)
+graph_builder.add_node(
+    "Query Type Checker",
+    query_type_checker
+)
+
+graph_builder.add_node(
+    "Sale Validator",
+    query_checker_sale
+)
+
+graph_builder.add_node(
+    "Expense Validator",
+    query_checker_expense
+)
+
+graph_builder.add_node(
+    "Udhar Validator",
+    query_checker_udhar
+)
+
+graph_builder.add_node(
+    "Sale Query Generator",
+    db_query_maker_sale
+)
+
+graph_builder.add_node(
+    "Expense Query Generator",
+    expense_query_maker
+)
+
+graph_builder.add_node(
+    "Udhar Query Generator",
+    udhar_query_maker
+)
+
+graph_builder.add_node(
+    "Recommendation Engine",
+    recommender
+)
 
 # --- 2. Build the Edges ---
-graph_builder.add_edge(START, 'query_type_checker')
+graph_builder.add_edge(
+    START,
+    "Query Type Checker"
+)
 
 graph_builder.add_conditional_edges(
-    'query_type_checker',
+    "Query Type Checker",
     route_by_type,
     {
-        'sale': 'sale_check',
-        'expense': 'expense_check',
-        'udhar': 'udhar_check'
+        "sale": "Sale Validator",
+        "expense": "Expense Validator",
+        "udhar": "Udhar Validator"
     }
 )
 
 graph_builder.add_conditional_edges(
-    'sale_check',
+    "Sale Validator",
     route_query,
     {
-        'correct': 'sale_query',
-        'incorrect': 'rec'
+        "correct": "Sale Query Generator",
+        "incorrect": "Recommendation Engine"
     }
 )
 
 graph_builder.add_conditional_edges(
-    'expense_check',
+    "Expense Validator",
     route_query,
     {
-        'correct': 'expense_query',
-        'incorrect': 'rec'
+        "correct": "Expense Query Generator",
+        "incorrect": "Recommendation Engine"
     }
 )
 
 graph_builder.add_conditional_edges(
-    'udhar_check',
+    "Udhar Validator",
     route_query,
     {
-        'correct': 'udhar_query',
-        'incorrect': 'rec'
+        "correct": "Udhar Query Generator",
+        "incorrect": "Recommendation Engine"
     }
 )
 
 # --- 3. End Edges ---
-graph_builder.add_edge('sale_query', END)
-graph_builder.add_edge('expense_query', END)
-graph_builder.add_edge('udhar_query', END)
-graph_builder.add_edge('rec', END)
+graph_builder.add_edge(
+    "Sale Query Generator",
+    END
+)
+
+graph_builder.add_edge(
+    "Expense Query Generator",
+    END
+)
+
+graph_builder.add_edge(
+    "Udhar Query Generator",
+    END
+)
+
+graph_builder.add_edge(
+    "Recommendation Engine",
+    END
+)
 
 # Compile the Graph
 graph = graph_builder.compile(checkpointer=memory)
@@ -89,24 +138,25 @@ except Exception as e:
     print("Could not generate image. Error:", e)
 
 
+# --- FIXED NODE DESCRIPTIONS ---
 NODE_DESCRIPTIONS = {
-    'query_type_checker': 'Identifying transaction type (sale / expense / udhar)...',
-    'sale_check':         'Validating sale details (item, quantity, amount)...',
-    'expense_check':      'Validating expense details (type, amount)...',
-    'udhar_check':        'Validating udhar details (person, amount, direction)...',
-    'sale_query':         'Building sale record for database...',
-    'expense_query':      'Building expense record for database...',
-    'udhar_query':        'Building udhar record for database...',
-    'rec':                'Generating clarification request for missing info...',
+    'Query Type Checker': 'Identifying transaction type (sale / expense / udhar)...',
+    'Sale Validator': 'Validating sale details (item, quantity, amount)...',
+    'Expense Validator': 'Validating expense details (type, amount)...',
+    'Udhar Validator': 'Validating udhar details (person, amount, direction)...',
+    'Sale Query Generator': 'Building sale record for database...',
+    'Expense Query Generator': 'Building expense record for database...',
+    'Udhar Query Generator': 'Building udhar record for database...',
+    'Recommendation Engine': 'Generating clarification request for missing info...',
 }
 
-
-async def main(voice_text: str, vendor_id: str,num):
+async def main(voice_text: str, vendor_id: str, num):
     vendor_attributes = await get_vendor_attributes(vendor_id)
-    if num==-1:
+    
+    if num == -1:
         num = random.randint(1000, 9999)
         print(num)
-    # Use vendor_id as thread_id so each user has isolated memory
+        
     config = {
         "configurable": {
             "thread_id": str(num)
@@ -121,19 +171,21 @@ async def main(voice_text: str, vendor_id: str,num):
             "transaction-classifier"
         ]
     }
+    
     print(voice_text)
     async for event in graph.astream({
         'messages': voice_text,
-        'recent_msg':voice_text,
+        'recent_msg': voice_text,
         'vendor_id': vendor_id,
         'vendor_attributes': vendor_attributes,
     }, config=config):
+        
         for node_name, node_state in event.items():
-
             description = NODE_DESCRIPTIONS.get(node_name, f'Processing node: {node_name}...')
             yield {"status": description}
 
-            if node_name in ['sale_query', 'expense_query', 'udhar_query']:
+            # --- FIXED CONDITIONALS ---
+            if node_name in ['Sale Query Generator', 'Expense Query Generator', 'Udhar Query Generator']:
                 try:
                     final_json = json.loads(node_state['messages'][-1].content)
                     tx_type = final_json.get('type', node_name)
@@ -151,7 +203,8 @@ async def main(voice_text: str, vendor_id: str,num):
                         "data": None
                     }
 
-            elif node_name == 'rec':
+            # --- FIXED CONDITIONAL ---
+            elif node_name == 'Recommendation Engine':
                 raw_content = node_state['messages'][-1].content
                 try:
                     suggestions = json.loads(raw_content)
@@ -164,11 +217,9 @@ async def main(voice_text: str, vendor_id: str,num):
                     "status": "Some details are missing. Please clarify.",
                     "stage": "clarification_needed",
                     "data": suggestions,
-                    "num":num
+                    "num": num
                 }
-                await save_recommendation(vendor_id, suggestions , num)  # ✅ fixed: added await
-
-
+                await save_recommendation(vendor_id, suggestions, num)
 # ── Local testing only ──────────────────────────────────────────────
 if __name__ == "__main__":
     import asyncio

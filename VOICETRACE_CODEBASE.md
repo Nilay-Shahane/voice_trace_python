@@ -618,60 +618,109 @@ memory = MemorySaver()
 graph_builder = StateGraph(State)
 
 # --- 1. Add All Nodes ---
-graph_builder.add_node('query_type_checker', query_type_checker)
-graph_builder.add_node('sale_check', query_checker_sale)
-graph_builder.add_node('expense_check', query_checker_expense)
-graph_builder.add_node('udhar_check', query_checker_udhar)
-graph_builder.add_node('sale_query', db_query_maker_sale)
-graph_builder.add_node('expense_query', expense_query_maker)
-graph_builder.add_node('udhar_query', udhar_query_maker)
-graph_builder.add_node('rec', recommender)
+graph_builder.add_node(
+    "Query Type Checker",
+    query_type_checker
+)
+
+graph_builder.add_node(
+    "Sale Validator",
+    query_checker_sale
+)
+
+graph_builder.add_node(
+    "Expense Validator",
+    query_checker_expense
+)
+
+graph_builder.add_node(
+    "Udhar Validator",
+    query_checker_udhar
+)
+
+graph_builder.add_node(
+    "Sale Query Generator",
+    db_query_maker_sale
+)
+
+graph_builder.add_node(
+    "Expense Query Generator",
+    expense_query_maker
+)
+
+graph_builder.add_node(
+    "Udhar Query Generator",
+    udhar_query_maker
+)
+
+graph_builder.add_node(
+    "Recommendation Engine",
+    recommender
+)
 
 # --- 2. Build the Edges ---
-graph_builder.add_edge(START, 'query_type_checker')
+graph_builder.add_edge(
+    START,
+    "Query Type Checker"
+)
 
 graph_builder.add_conditional_edges(
-    'query_type_checker',
+    "Query Type Checker",
     route_by_type,
     {
-        'sale': 'sale_check',
-        'expense': 'expense_check',
-        'udhar': 'udhar_check'
+        "sale": "Sale Validator",
+        "expense": "Expense Validator",
+        "udhar": "Udhar Validator"
     }
 )
 
 graph_builder.add_conditional_edges(
-    'sale_check',
+    "Sale Validator",
     route_query,
     {
-        'correct': 'sale_query',
-        'incorrect': 'rec'
+        "correct": "Sale Query Generator",
+        "incorrect": "Recommendation Engine"
     }
 )
 
 graph_builder.add_conditional_edges(
-    'expense_check',
+    "Expense Validator",
     route_query,
     {
-        'correct': 'expense_query',
-        'incorrect': 'rec'
+        "correct": "Expense Query Generator",
+        "incorrect": "Recommendation Engine"
     }
 )
 
 graph_builder.add_conditional_edges(
-    'udhar_check',
+    "Udhar Validator",
     route_query,
     {
-        'correct': 'udhar_query',
-        'incorrect': 'rec'
+        "correct": "Udhar Query Generator",
+        "incorrect": "Recommendation Engine"
     }
 )
 
 # --- 3. End Edges ---
-graph_builder.add_edge('sale_query', END)
-graph_builder.add_edge('expense_query', END)
-graph_builder.add_edge('udhar_query', END)
-graph_builder.add_edge('rec', END)
+graph_builder.add_edge(
+    "Sale Query Generator",
+    END
+)
+
+graph_builder.add_edge(
+    "Expense Query Generator",
+    END
+)
+
+graph_builder.add_edge(
+    "Udhar Query Generator",
+    END
+)
+
+graph_builder.add_edge(
+    "Recommendation Engine",
+    END
+)
 
 # Compile the Graph
 graph = graph_builder.compile(checkpointer=memory)
