@@ -48,7 +48,7 @@ User Message: "{msg_content}"
 
 
 def query_checker_expense(state: State):
-    msg_content = state['original_input']
+    msg_content = state['recent_msg']
     print("Evaluating expense:", msg_content)
 
     prompt = f'''You are a strict data validation agent for a transaction logging system.
@@ -88,7 +88,7 @@ User Message: "{msg_content}"
 
 
 def query_checker_udhar(state: State):
-    msg_content = state['original_input']
+    msg_content = state['recent_msg']
     print("Evaluating udhar:", msg_content)
 
     prompt = f'''You are a strict data validation agent for a transaction logging system.
