@@ -13,8 +13,12 @@ load_dotenv()
 from langchain_openai import ChatOpenAI
 
 llm = ChatOpenAI(
-    model="gpt-4.1-mini",   # BEST choice for your use case
-    temperature=0
+    model="gpt-4.1-mini",
+    temperature=0,
+    top_p=1.0,
+    max_tokens=512,
+    timeout=30,
+    max_retries=2
 )
 
 print("LLM INITIALIZATION")

@@ -1,4 +1,4 @@
-# Architecture Decision Q&A — Voice Transaction Agent (FinGuru)
+# Architecture Decision Q&A — Voice Transaction Agent (Voicetrace)
 
 Interview-ready answers grounded in what the code actually does, not textbook definitions.
 Each answer has: **the decision → why → the honest tradeoff / what a reviewer could poke at.**
